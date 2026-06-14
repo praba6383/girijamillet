@@ -1,0 +1,6 @@
+{
+  "name": "Girija Millets",
+  "description": "Comprehensive premium organic millets website with products shop, recipe blog, ingredients detailer, search, and integrated customer support over WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
