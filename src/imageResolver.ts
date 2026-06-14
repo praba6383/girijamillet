@@ -10,7 +10,7 @@ const assetImages: Record<string, string> = {};
 
 try {
   // Eagerly glob all images in src/assets/images so they are bundled into the production build
-  const glob = (import.meta as any).glob('/src/assets/images/**/*.{jpg,jpeg,png,webp,svg,gif}', { eager: true, import: 'default' }) as Record<string, string>;
+  const glob = import.meta.glob<string>('./assets/images/**/*.{jpg,jpeg,png,webp,svg,gif}', { eager: true, import: 'default' });
   Object.entries(glob).forEach(([key, value]) => {
     const filename = key.split('/').pop() || '';
     if (filename) {
