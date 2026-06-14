@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CartItem } from '../types';
 import { X, Trash2, Plus, Minus, Send, ShoppingBag, ShieldAlert, ArrowRight } from 'lucide-react';
 import { GIRIJA_CONTACT } from '../data';
+import { resolveProductImage } from '../imageResolver';
 
 interface CartModalProps {
   isOpen: boolean;
@@ -127,7 +128,7 @@ export default function CartModal({
                     {/* Thumbnail */}
                     <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-gray-100 relative">
                       <img
-                        src={item.product.image}
+                        src={resolveProductImage(item.product.image)}
                         alt={item.product.name}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"

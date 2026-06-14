@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { ShoppingBag, ChevronDown, ChevronUp, ShieldCheck, Heart, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
+import { resolveProductImage } from '../imageResolver';
 
 interface ProductCardProps {
   key?: string | number;
@@ -87,7 +88,7 @@ export default function ProductCard({ product, onAddToCart, cartCount, onUpdateQ
       {/* Product Image Section */}
       <div className="relative pt-[72%] bg-[#FAF9F6] overflow-hidden group border-b border-gray-100">
         <img
-          src={product.image}
+          src={resolveProductImage(product.image)}
           alt={product.name}
           className="absolute inset-0 w-full h-full object-cover group-hover:scale-102 transition-transform duration-500 ease-out"
           referrerPolicy="no-referrer"

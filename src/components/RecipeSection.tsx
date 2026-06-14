@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Recipe, Product } from '../types';
 import { Clock, ChefHat, Check, ShoppingBag, ArrowRight, BookOpen, Utensils, Search } from 'lucide-react';
 import { motion } from 'motion/react';
+import { resolveProductImage } from '../imageResolver';
 
 interface RecipeSectionProps {
   recipes: Recipe[];
@@ -340,7 +341,7 @@ export default function RecipeSection({
                   <div className="p-4 bg-brand-green-50 border-t border-brand-green-100 shrink-0 flex items-center justify-between gap-3 flex-col sm:flex-row">
                     <div className="flex items-center gap-3 text-left">
                       <div className="w-10 h-10 rounded-lg overflow-hidden bg-white shrink-0">
-                        <img src={lp.image} alt={lp.name} className="w-full h-full object-cover" />
+                        <img src={resolveProductImage(lp.image)} alt={lp.name} className="w-full h-full object-cover" />
                       </div>
                       <div>
                         <span className="text-[10px] text-brand-green-700 font-bold uppercase tracking-wide">Cooking with</span>

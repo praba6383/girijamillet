@@ -635,7 +635,7 @@ export default function AdminPanel({
                     <div className="flex items-center gap-3.5 text-left min-w-0">
                       <div className="w-14 h-14 bg-gray-50 border border-gray-100 rounded-xl overflow-hidden shrink-0 relative">
                         <img 
-                          src={product.image} 
+                          src={resolveProductImage(product.image)} 
                           alt={product.name} 
                           className="w-full h-full object-cover" 
                           referrerPolicy="no-referrer"

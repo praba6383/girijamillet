@@ -35,17 +35,27 @@ import { resolveProductImage } from './imageResolver';
 function sanitizeProductImage(p: Product): Product {
   let updatedImage = p.image || '';
   
+  // Find the fresh definition of this product from data.ts
+  const original = PRODUCTS.find(orig => orig.id === p.id);
+  if (original) {
+    // If the image is empty, undefined, null, or is a compiled asset from a previous environment's build (e.g. contains '/assets/')
+    // we restore the clean static catalog path so that it can be correctly resolved in the current build.
+    if (!updatedImage || updatedImage.includes('/assets/') || updatedImage === 'undefined' || updatedImage === 'null') {
+      updatedImage = original.image;
+    }
+  }
+  
   // Specific fallback/replacements for old unsplash/stale images
-  if (p.id === 'karunguruvai-flakes' && updatedImage.includes('unsplash.com/photo-1509440159596-0249088772ff')) {
+  if (p.id === 'karunguruvai-flakes' && (updatedImage.includes('unsplash') || updatedImage.includes('photo-1509440159596'))) {
     updatedImage = '/images/karunguruvai_flakes_1781431075326.jpg';
   }
-  if (p.id === 'mapillai-samba-flakes' && updatedImage.includes('unsplash.com/photo-1612927601601-6638404737ce')) {
+  if (p.id === 'mapillai-samba-flakes' && (updatedImage.includes('unsplash') || updatedImage.includes('photo-1612927601601'))) {
     updatedImage = '/images/mappillai_stamina_flakes_1781431060505.jpg';
   }
-  if (p.id === 'mapillai-samba-rava' && updatedImage.includes('unsplash.com/photo-1517741900358-cda6dcafd502')) {
+  if (p.id === 'mapillai-samba-rava' && (updatedImage.includes('unsplash') || updatedImage.includes('photo-1517741900358'))) {
     updatedImage = '/images/mappillai_samba_rava_1781431043965.jpg';
   }
-  if (p.id === 'barnyard-rava' && updatedImage.includes('unsplash.com/photo-1590080875515-8a3a8dc5735e')) {
+  if (p.id === 'barnyard-rava' && (updatedImage.includes('unsplash') || updatedImage.includes('photo-1590080875515'))) {
     updatedImage = '/images/barnyard_millet_rava_1781431023140.jpg';
   }
   return { ...p, image: resolveProductImage(updatedImage) };
