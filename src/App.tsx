@@ -30,13 +30,10 @@ import {
   ShoppingCart
 } from 'lucide-react';
 
+import { resolveProductImage } from './imageResolver';
+
 function sanitizeProductImage(p: Product): Product {
   let updatedImage = p.image || '';
-  if (updatedImage.includes('src/assets/images/')) {
-    updatedImage = updatedImage.replace(/.*src\/assets\/images\//, '/images/');
-  } else if (updatedImage.includes('assets/images/')) {
-    updatedImage = updatedImage.replace(/.*assets\/images\//, '/images/');
-  }
   
   // Specific fallback/replacements for old unsplash/stale images
   if (p.id === 'karunguruvai-flakes' && updatedImage.includes('unsplash.com/photo-1509440159596-0249088772ff')) {
@@ -51,7 +48,7 @@ function sanitizeProductImage(p: Product): Product {
   if (p.id === 'barnyard-rava' && updatedImage.includes('unsplash.com/photo-1590080875515-8a3a8dc5735e')) {
     updatedImage = '/images/barnyard_millet_rava_1781431023140.jpg';
   }
-  return { ...p, image: updatedImage };
+  return { ...p, image: resolveProductImage(updatedImage) };
 }
 
 export default function App() {

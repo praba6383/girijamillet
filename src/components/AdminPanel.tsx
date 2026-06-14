@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Product } from '../types';
+import { resolveProductImage } from '../imageResolver';
 import { 
   Plus, 
   Trash2, 
@@ -493,7 +494,7 @@ export default function AdminPanel({
                       title={preset.label}
                     >
                       <img
-                        src={preset.value}
+                        src={resolveProductImage(preset.value)}
                         alt={preset.label}
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
