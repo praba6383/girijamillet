@@ -30,6 +30,30 @@ import {
   ShoppingCart
 } from 'lucide-react';
 
+function sanitizeProductImage(p: Product): Product {
+  let updatedImage = p.image || '';
+  if (updatedImage.includes('src/assets/images/')) {
+    updatedImage = updatedImage.replace(/.*src\/assets\/images\//, '/images/');
+  } else if (updatedImage.includes('assets/images/')) {
+    updatedImage = updatedImage.replace(/.*assets\/images\//, '/images/');
+  }
+  
+  // Specific fallback/replacements for old unsplash/stale images
+  if (p.id === 'karunguruvai-flakes' && updatedImage.includes('unsplash.com/photo-1509440159596-0249088772ff')) {
+    updatedImage = '/images/karunguruvai_flakes_1781431075326.jpg';
+  }
+  if (p.id === 'mapillai-samba-flakes' && updatedImage.includes('unsplash.com/photo-1612927601601-6638404737ce')) {
+    updatedImage = '/images/mappillai_stamina_flakes_1781431060505.jpg';
+  }
+  if (p.id === 'mapillai-samba-rava' && updatedImage.includes('unsplash.com/photo-1517741900358-cda6dcafd502')) {
+    updatedImage = '/images/mappillai_samba_rava_1781431043965.jpg';
+  }
+  if (p.id === 'barnyard-rava' && updatedImage.includes('unsplash.com/photo-1590080875515-8a3a8dc5735e')) {
+    updatedImage = '/images/barnyard_millet_rava_1781431023140.jpg';
+  }
+  return { ...p, image: updatedImage };
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'shop' | 'recipes' | 'about' | 'glossary' | 'admin'>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -42,25 +66,11 @@ export default function App() {
       const saved = localStorage.getItem('girija_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        return parsed.map(p => {
-          if (p.id === 'karunguruvai-flakes' && p.image.includes('unsplash.com/photo-1509440159596-0249088772ff')) {
-            return { ...p, image: '/images/karunguruvai_flakes_1781431075326.jpg' };
-          }
-          if (p.id === 'mapillai-samba-flakes' && p.image.includes('unsplash.com/photo-1612927601601-6638404737ce')) {
-            return { ...p, image: '/images/mappillai_stamina_flakes_1781431060505.jpg' };
-          }
-          if (p.id === 'mapillai-samba-rava' && p.image.includes('unsplash.com/photo-1517741900358-cda6dcafd502')) {
-            return { ...p, image: '/images/mappillai_samba_rava_1781431043965.jpg' };
-          }
-          if (p.id === 'barnyard-rava' && p.image.includes('unsplash.com/photo-1590080875515-8a3a8dc5735e')) {
-            return { ...p, image: '/images/barnyard_millet_rava_1781431023140.jpg' };
-          }
-          return p;
-        });
+        return parsed.map(p => sanitizeProductImage(p));
       }
-      return PRODUCTS;
+      return PRODUCTS.map(p => sanitizeProductImage(p));
     } catch (e) {
-      return PRODUCTS;
+      return PRODUCTS.map(p => sanitizeProductImage(p));
     }
   });
 
@@ -73,7 +83,14 @@ export default function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
     try {
       const saved = localStorage.getItem('girija_cart');
-      return saved ? JSON.parse(saved) : [];
+      if (saved) {
+        const parsed: CartItem[] = JSON.parse(saved);
+        return parsed.map(item => ({
+          ...item,
+          product: sanitizeProductImage(item.product)
+        }));
+      }
+      return [];
     } catch (e) {
       return [];
     }
