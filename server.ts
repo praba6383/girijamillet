@@ -11,7 +11,7 @@ import { PRODUCTS } from "./src/data.js"; // Standard import with extension or r
 neonConfig.webSocketConstructor = ws;
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ override: true });
 
 const app = express();
 app.use(express.json());
