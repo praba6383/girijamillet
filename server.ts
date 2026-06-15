@@ -29,18 +29,31 @@ let isBootstrapping = false;
 let inMemoryProducts = [...PRODUCTS];
 
 function getDbPool(): any {
-  const connectionString = process.env.DATABASE_URL;
+  let connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     dbError = "DATABASE_URL environment variable is missing. Configure your DATABASE_URL in settings.";
     usePostgres = false;
     return null;
   }
 
+  // Handle connection strings wrapped in double-quotes or single-quotes resiliently
+  connectionString = connectionString.trim();
+  if (connectionString.startsWith('"') && connectionString.endsWith('"')) {
+    connectionString = connectionString.slice(1, -1);
+  } else if (connectionString.startsWith("'") && connectionString.endsWith("'")) {
+    connectionString = connectionString.slice(1, -1);
+  }
+  connectionString = connectionString.trim();
+
   if (dbPool) return dbPool;
 
   try {
     const isNeon = connectionString.includes("neon.tech") || connectionString.includes("netlify.app") || connectionString.includes("netlify.db") || connectionString.includes("netlify.com") || connectionString.includes("neondatabase");
     
+    // Log connected DB details safely (excluding password)
+    const secureLogUrl = connectionString.replace(/:[^:@]+@/, ":****@");
+    console.log(`Initializing database pool for connection: ${secureLogUrl}`);
+
     if (isNeon) {
       console.log("Detected Serverless Neon/Netlify Database connection string. Using WebSocket database pool.");
       dbPool = new NeonPool({
