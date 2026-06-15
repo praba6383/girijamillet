@@ -2,12 +2,16 @@ import express from "express";
 import path from "path";
 import pg from "pg";
 import dotenv from "dotenv";
-import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
 import { PRODUCTS } from "./src/data.js"; // Standard import with extension or relative resolution
 
-// Configure Neon to use WebSockets in Node.js
-neonConfig.webSocketConstructor = ws;
+// Prevent serverless functions from crashing due to unhandled promise rejections from db/sockets
+process.on("unhandledRejection", (reason, promise) => {
+  console.warn("Global alert: Unhandled Promise Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("Global alert: Uncaught Exception:", error);
+});
 
 // Load environment variables
 dotenv.config({ override: true });
@@ -44,35 +48,41 @@ function getDbPool(): any {
   }
   connectionString = connectionString.trim();
 
+  if (!connectionString || (!connectionString.startsWith("postgres://") && !connectionString.startsWith("postgresql://"))) {
+    dbError = "DATABASE_URL is not a valid PostgreSQL URL (must start with postgres:// or postgresql://). Please re-check Netlify setting.";
+    usePostgres = false;
+    return null;
+  }
+
+  try {
+    // Validate that Node's standard URL parser can parse the string cleanly.
+    // If there are unencoded special characters in passwords/usernames, this will throw a catchable error.
+    new URL(connectionString.replace(/^(postgres|postgresql):\/\//, "https://"));
+  } catch (err: any) {
+    dbError = `DATABASE_URL is not a valid connection URL format (parsing failed: ${err.message}). If your password contains special characters, please URL-encode them.`;
+    usePostgres = false;
+    return null;
+  }
+
   if (dbPool) return dbPool;
 
   try {
-    const isNeon = connectionString.includes("neon.tech") || connectionString.includes("netlify.app") || connectionString.includes("netlify.db") || connectionString.includes("netlify.com") || connectionString.includes("neondatabase");
-    
     // Log connected DB details safely (excluding password)
     const secureLogUrl = connectionString.replace(/:[^:@]+@/, ":****@");
     console.log(`Initializing database pool for connection: ${secureLogUrl}`);
 
-    if (isNeon) {
-      console.log("Detected Serverless Neon/Netlify Database connection string. Using WebSocket database pool.");
-      dbPool = new NeonPool({
-        connectionString,
-        connectionTimeoutMillis: 12000, // 12 seconds to wait for initial WebSocket setup
-      });
-    } else {
-      console.log("Using standard PostgreSQL database pool.");
-      dbPool = new pg.Pool({
-        connectionString,
-        // For serverless databases like Neon (Netlify Database), SSL is required in production
-        ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
-          ? false
-          : { rejectUnauthorized: false },
-        connectionTimeoutMillis: 8000, // 8 seconds to wait for initial TCP setup (faster fallback)
-        max: 6, // optimal pool size for serverless
-        idleTimeoutMillis: 1000, // immediately clear idle connections so we don't hold onto dead sockets
-        keepAlive: true, // socket-level keep-alive probes
-      });
-    }
+    console.log("Using standard PostgreSQL database pool with secure SSL fallback.");
+    dbPool = new pg.Pool({
+      connectionString,
+      // For serverless databases like Neon (Netlify Database) or Cloud SQL, SSL is required in production
+      ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
+        ? false
+        : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 8000, // 8 seconds to wait for initial TCP setup (faster fallback)
+      max: 6, // optimal pool size for serverless
+      idleTimeoutMillis: 1000, // immediately clear idle connections so we don't hold onto dead sockets
+      keepAlive: true, // socket-level keep-alive probes
+    });
 
     dbPool.on("error", (err: any) => {
       console.warn("PostgreSQL idle client error (recovering on next call):", err.message);
