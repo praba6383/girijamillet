@@ -131,9 +131,40 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setDbStatus(data);
+      } else {
+        let backendError = `HTTP error ${res.status}`;
+        try {
+          // Attempt to parse structured JSON error
+          const text = await res.text();
+          try {
+            const parsed = JSON.parse(text);
+            if (parsed && typeof parsed.error === 'string') {
+              backendError = parsed.error;
+            } else if (parsed && typeof parsed.message === 'string') {
+              backendError = parsed.message;
+            }
+          } catch (_) {
+            if (text && text.trim().length > 0 && text.length < 250) {
+              backendError = text.trim();
+            }
+          }
+        } catch (_) {}
+
+        setDbStatus({
+          connected: false,
+          type: 'http-error',
+          error: backendError,
+          databaseUrlSet: true
+        });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch database status:", err);
+      setDbStatus({
+        connected: false,
+        type: 'network-error',
+        error: `Network failure: ${err?.message || String(err)}`,
+        databaseUrlSet: false
+      });
     }
   };
 

@@ -295,15 +295,26 @@ export default function AdminPanel({
                   🟢 Connected to Netlify Database (PostgreSQL)
                 </span>
               ) : (
-                <span className="bg-amber-50 text-amber-800 font-medium px-2.5 py-1.5 rounded-lg border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center gap-1.5 shadow-3xs text-left max-w-lg">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-                    🟡 Connected to In-Memory Fallback
-                  </span>
-                  <span className="text-[10px] text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded">
-                    Reason: {dbStatus.error || "DATABASE_URL environment variable is missing"}
-                  </span>
-                </span>
+                <div className="bg-amber-50 text-amber-800 rounded-xl border border-amber-200 p-3.5 shadow-3xs text-left max-w-xl w-full flex flex-col gap-2">
+                  <div className="flex items-center justify-between gap-2 border-b border-amber-200/50 pb-1.5">
+                    <span className="font-semibold flex items-center gap-1.5 text-[11px] sm:text-xs">
+                      <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse shrink-0"></span>
+                      Fallback Mode Active (Local Memory Store)
+                    </span>
+                    <span className="text-[9px] bg-amber-200/60 text-amber-900 font-mono px-1.5 py-0.5 rounded uppercase font-bold tracking-wider shrink-0">
+                      Sandbox Safe
+                    </span>
+                  </div>
+                  <div className="text-xs">
+                    <p className="text-amber-900/85 mb-2 leading-relaxed font-serif text-[11px] sm:text-xs">
+                      Products are active locally. To hook this app up with your persistent PostgreSQL database, make sure to verify your DATABASE_URL structure under settings.
+                    </p>
+                    <div className="bg-white/80 border border-amber-200/60 rounded-lg p-2.5 font-mono text-[11px] text-amber-950 select-text overflow-x-auto max-h-36 scrollbar-thin">
+                      <span className="font-semibold text-amber-900 block mb-1 font-sans text-[11px]">Diagnostic Error Output:</span>
+                      <div className="whitespace-pre-wrap break-words">{dbStatus.error || "DATABASE_URL environment variable is missing."}</div>
+                    </div>
+                  </div>
+                </div>
               )}
               {dbStatus.databaseUrlSet ? (
                 <span className="text-gray-400 text-[11px] font-mono">
