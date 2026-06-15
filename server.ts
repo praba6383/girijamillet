@@ -3,7 +3,12 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import pg from "pg";
 import dotenv from "dotenv";
+import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
 import { PRODUCTS } from "./src/data.js"; // Standard import with extension or relative resolution
+
+// Configure Neon to use WebSockets in Node.js
+neonConfig.webSocketConstructor = ws;
 
 // Load environment variables
 dotenv.config();
@@ -14,7 +19,7 @@ app.use(express.json());
 const PORT = 3000;
 
 // Lazy Database Pool initialization
-let dbPool: pg.Pool | null = null;
+let dbPool: any = null;
 let dbError: string | null = null;
 let usePostgres = false;
 let dbInitialized = false;
@@ -23,7 +28,7 @@ let isBootstrapping = false;
 // Local fallback store if Postgres is not configured or fails to connect
 let inMemoryProducts = [...PRODUCTS];
 
-function getDbPool(): pg.Pool | null {
+function getDbPool(): any {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     dbError = "DATABASE_URL environment variable is missing. Configure your DATABASE_URL in settings.";
@@ -34,20 +39,31 @@ function getDbPool(): pg.Pool | null {
   if (dbPool) return dbPool;
 
   try {
-    dbPool = new pg.Pool({
-      connectionString,
-      // For serverless databases like Neon (Netlify Database), SSL is required in production
-      ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
-        ? false
-        : { rejectUnauthorized: false },
-      connectionTimeoutMillis: 8000, // 8 seconds to wait for initial TCP setup (faster fallback)
-      max: 6, // optimal pool size for serverless
-      idleTimeoutMillis: 1000, // immediately clear idle connections so we don't hold onto dead sockets
-      keepAlive: true, // socket-level keep-alive probes
-    });
+    const isNeon = connectionString.includes("neon.tech") || connectionString.includes("netlify.app") || connectionString.includes("netlify.db") || connectionString.includes("netlify.com") || connectionString.includes("neondatabase");
+    
+    if (isNeon) {
+      console.log("Detected Serverless Neon/Netlify Database connection string. Using WebSocket database pool.");
+      dbPool = new NeonPool({
+        connectionString,
+        connectionTimeoutMillis: 12000, // 12 seconds to wait for initial WebSocket setup
+      });
+    } else {
+      console.log("Using standard PostgreSQL database pool.");
+      dbPool = new pg.Pool({
+        connectionString,
+        // For serverless databases like Neon (Netlify Database), SSL is required in production
+        ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
+          ? false
+          : { rejectUnauthorized: false },
+        connectionTimeoutMillis: 8000, // 8 seconds to wait for initial TCP setup (faster fallback)
+        max: 6, // optimal pool size for serverless
+        idleTimeoutMillis: 1000, // immediately clear idle connections so we don't hold onto dead sockets
+        keepAlive: true, // socket-level keep-alive probes
+      });
+    }
 
-    dbPool.on("error", (err) => {
-      console.warn("Serverless PostgreSQL idle client error (recovering on next call):", err.message);
+    dbPool.on("error", (err: any) => {
+      console.warn("PostgreSQL idle client error (recovering on next call):", err.message);
       dbError = err.message;
       usePostgres = false;
       
