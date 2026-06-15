@@ -108,7 +108,7 @@ export default function RecipeSection({
                 {/* Image panel */}
                 <div className="md:w-2/5 relative pt-[56%] md:pt-0 bg-gray-100 overflow-hidden shrink-0">
                   <img
-                    src={recipe.image}
+                    src={resolveProductImage(recipe.image)}
                     alt={recipe.title}
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     referrerPolicy="no-referrer"
@@ -196,7 +196,7 @@ export default function RecipeSection({
             {/* Header Image cover */}
             <div className="relative h-48 bg-gray-100 shrink-0">
               <img
-                src={selectedRecipe.image}
+                src={resolveProductImage(selectedRecipe.image)}
                 alt={selectedRecipe.title}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
@@ -341,7 +341,12 @@ export default function RecipeSection({
                   <div className="p-4 bg-brand-green-50 border-t border-brand-green-100 shrink-0 flex items-center justify-between gap-3 flex-col sm:flex-row">
                     <div className="flex items-center gap-3 text-left">
                       <div className="w-10 h-10 rounded-lg overflow-hidden bg-white shrink-0">
-                        <img src={resolveProductImage(lp.image)} alt={lp.name} className="w-full h-full object-cover" />
+                        <img 
+                          src={resolveProductImage(lp.image)} 
+                          alt={lp.name} 
+                          className="w-full h-full object-cover" 
+                          referrerPolicy="no-referrer"
+                        />
                       </div>
                       <div>
                         <span className="text-[10px] text-brand-green-700 font-bold uppercase tracking-wide">Cooking with</span>

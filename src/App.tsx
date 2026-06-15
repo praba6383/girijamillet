@@ -38,26 +38,20 @@ function sanitizeProductImage(p: Product): Product {
   // Find the fresh definition of this product from data.ts
   const original = PRODUCTS.find(orig => orig.id === p.id);
   if (original) {
-    // If the image is empty, undefined, null, or is a compiled asset from a previous environment's build (e.g. contains '/assets/')
-    // we restore the clean static catalog path so that it can be correctly resolved in the current build.
-    if (!updatedImage || updatedImage.includes('/assets/') || updatedImage === 'undefined' || updatedImage === 'null') {
+    // If the image is empty, undefined, null, a compiled asset path, or has a legacy local server /images/ path,
+    // we restore the clean static catalog path (which is the new Unsplash URL).
+    if (
+      !updatedImage || 
+      updatedImage.startsWith('/images/') || 
+      updatedImage.includes('/images/') || 
+      updatedImage.includes('/assets/') || 
+      updatedImage === 'undefined' || 
+      updatedImage === 'null'
+    ) {
       updatedImage = original.image;
     }
   }
   
-  // Specific fallback/replacements for old unsplash/stale images
-  if (p.id === 'karunguruvai-flakes' && (updatedImage.includes('unsplash') || updatedImage.includes('photo-1509440159596'))) {
-    updatedImage = '/images/karunguruvai_flakes_1781431075326.jpg';
-  }
-  if (p.id === 'mapillai-samba-flakes' && (updatedImage.includes('unsplash') || updatedImage.includes('photo-1612927601601'))) {
-    updatedImage = '/images/mappillai_stamina_flakes_1781431060505.jpg';
-  }
-  if (p.id === 'mapillai-samba-rava' && (updatedImage.includes('unsplash') || updatedImage.includes('photo-1517741900358'))) {
-    updatedImage = '/images/mappillai_samba_rava_1781431043965.jpg';
-  }
-  if (p.id === 'barnyard-rava' && (updatedImage.includes('unsplash') || updatedImage.includes('photo-1590080875515'))) {
-    updatedImage = '/images/barnyard_millet_rava_1781431023140.jpg';
-  }
   return { ...p, image: resolveProductImage(updatedImage) };
 }
 
@@ -494,7 +488,12 @@ export default function App() {
                     onClick={() => setActiveTab('recipes')}
                   >
                     <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gray-50 shrink-0">
-                      <img src={recipe.image} alt={recipe.title} className="w-full h-full object-cover" />
+                      <img 
+                        src={resolveProductImage(recipe.image)} 
+                        alt={recipe.title} 
+                        className="w-full h-full object-cover" 
+                        referrerPolicy="no-referrer" 
+                      />
                     </div>
                     <div className="flex-1 min-w-0 flex flex-col justify-between">
                       <div>

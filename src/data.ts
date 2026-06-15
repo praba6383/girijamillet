@@ -14,7 +14,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Health Malts",
     description: "Traditional nutrient-dense wellness beverage mix crafted from carefully washed and sprouted organic finger millets. Slow-roasted to seal in natural vitamins and aroma.",
-    image: "/images/ragi_malt_packaging_1781422356325.jpg",
+    image: "/images/ragi_malt_packaging.jpg",
     colorTheme: "amber",
     ingredients: [
       "Sprouted Organic Finger Millet (ராகி / கேழ்வரகு)",
@@ -45,7 +45,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Health Malts",
     description: "A superfood blend of sweet Apple, earthy Beetroot, and vitamin-rich Carrot. Enhanced with sprouted almonds and traditional spices for peak system detoxification and natural facial glow.",
-    image: "/images/abc_malt_packaging_1781422431988.jpg",
+    image: "/images/abc_malt_packaging.jpg",
     colorTheme: "rose",
     ingredients: [
       "Dehydrated Fresh Red Apples (ஆப்பிள்)",
@@ -79,7 +79,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Millet Flakes",
     description: "Highly nutritious whole grain flakes made from carefully sourced organic millets. Lightly steamed and flattened to retain natural fiber, proteins, and essential minerals.",
-    image: "/images/organic_poha_packaging_1781422412522.jpg",
+    image: "/images/organic_poha.jpg",
     colorTheme: "yellow",
     ingredients: ["100% Organic Flaked Millets (தினை அவல்) - zero chemical processing."],
     benefits: [
@@ -102,7 +102,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Millet Flakes",
     description: "An ancient heirloom red grain exceptionally rich in trace minerals. Highly treasured as women's health food because it aids in balancing hormones and rebuilding postpartum strength.",
-    image: "https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&q=80&w=600", // Pinkish raw grains/granola
+    image: "/images/organic_poha.jpg",
     colorTheme: "red",
     ingredients: ["100% Single-Origin Poongar Red Rice (பூங்கார் பாரம்பரிய அரிசி)"],
     benefits: [
@@ -123,7 +123,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Millet Flakes",
     description: "Finely processed flakes made from certified organic Little Millets. High in magnesium and fat-soluble vitamins, perfect for low-calorie weight loss goals.",
-    image: "https://images.unsplash.com/photo-1574316071802-0d684efa7bf5?auto=format&fit=crop&q=80&w=600", // Golden grain flakes
+    image: "/images/organic_poha.jpg",
     colorTheme: "emerald",
     ingredients: ["Organic Little Millet (சாமை அரிசி)"],
     benefits: [
@@ -144,7 +144,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Millet Flakes",
     description: "Rare traditional dark red flakes made from ancient Karunguruvai paddy. Celebrated in Siddha and local folklore for medicinal and heavy immunity-restoring properties.",
-    image: "/images/karunguruvai_flakes_1781431075326.jpg",
+    image: "/images/karunguruvai_flakes.jpg",
     colorTheme: "brown",
     ingredients: ["100% Ancient Karunguruvai Rice (கருங்குறுவைTraditional Paddy)"],
     benefits: [
@@ -165,7 +165,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Millet Flakes",
     description: "Rolled from traditional Tamil 'Mappillai Samba' red rice. Cultivated historically to give intense muscle strength, endurance, and nerve health to athletes and physically active youth.",
-    image: "/images/mappillai_stamina_flakes_1781431060505.jpg",
+    image: "/images/mappillai_stamina_flakes.jpg",
     colorTheme: "red",
     ingredients: ["100% Traditional Mappillai Samba Red Rice (மாப்பிள்ளை சம்பா அரிசி)"],
     benefits: [
@@ -188,7 +188,7 @@ export const PRODUCTS: Product[] = [
     weight: "175g",
     category: "Millet Noodles",
     description: "High-end, completely non-fried instant noodles crafted from air-dried Sorghum (Jowar) grains and whole wheat. Clean formulated without MSG, trans-fats, or artificial binders.",
-    image: "/images/jowar_noodles_packaging_1781422377655.jpg",
+    image: "/images/jowar_noodles_packaging.jpg",
     colorTheme: "orange",
     ingredients: ["Sorghum Flour (Jowar / சோளம்)", "Whole Wheat flour for binding", "Natural Rock Salt", "Herbal Seasoning Pack (Coriander, Cumin, Pepper, Ginger, Cardamom)"],
     benefits: [
@@ -211,7 +211,7 @@ export const PRODUCTS: Product[] = [
     weight: "180g",
     category: "Millet Noodles",
     description: "Delicious and nutrient-dense Hakka noodles crafted from premium organic Little Millet grains. Offers wonderful bite and pairs beautifully with fresh peppers and spices.",
-    image: "/images/hakka_noodles_packaging_1781422395705.jpg",
+    image: "/images/hakka_noodles_packaging.jpg",
     colorTheme: "pink",
     ingredients: ["Organic Little Millet Flour (சாமை)", "Whole Wheat", "Rock Salt", "Natural Chinese spice sachet"],
     benefits: [
@@ -233,7 +233,7 @@ export const PRODUCTS: Product[] = [
     weight: "175g",
     category: "Millet Noodles",
     description: "Traditional thin vermicelli prepared from certified organic Little Millet. Soft, nutritious, and incredibly fast to steam-cook.",
-    image: "/images/sevai_packaging_1781422467266.jpg",
+    image: "/images/sevai_packaging.jpg",
     colorTheme: "red",
     ingredients: ["100% Organic Little Millet (சாமை)", "Salt", "Wheat extract"],
     benefits: [
@@ -254,7 +254,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Millet Noodles",
     description: "Beautiful jade-green noodles enriched with fresh farm-plucked spinach (Palak). Packed with dietary iron, folate, and calcium for a healthy lifestyle.",
-    image: "/images/palak_noodles_packaging_1781422520320.jpg",
+    image: "/images/palak_noodles_packaging.jpg",
     colorTheme: "emerald",
     ingredients: ["Blend of Barnyard & Foxtail Millets", "Fresh Pureed Palak Spinach", "Whole wheat", "Rock salt", "Spice seasoning envelope"],
     benefits: [
@@ -277,7 +277,7 @@ export const PRODUCTS: Product[] = [
     weight: "500g",
     category: "Millet Rava",
     description: "Slightly coarse, high-fiber rava cracked from parboiled traditional Bridegroom Red Rice. Ideal substitute for normal white wheat semolina.",
-    image: "/images/mappillai_samba_rava_1781431043965.jpg",
+    image: "/images/mappillai_samba_rava.jpg",
     colorTheme: "red",
     ingredients: ["100% Traditional Mappillai Samba Red grains - coarse ground (ரவை)"],
     benefits: [
@@ -298,7 +298,7 @@ export const PRODUCTS: Product[] = [
     weight: "500g",
     category: "Millet Rava",
     description: "Coarse organic Barnyard Millet groats processed under strict hygienic conditions. Ideal for preparing healthy, diabetic-safe upma, khichdi, and sweet kesari.",
-    image: "/images/barnyard_millet_rava_1781431023140.jpg",
+    image: "/images/barnyard_millet_rava.jpg",
     colorTheme: "indigo",
     ingredients: ["Pure Certified Organic Barnyard Millet (குதிரைவாலி) grain groats"],
     benefits: [
@@ -321,7 +321,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Instant Mixes & Flour",
     description: "Instant healthy dosa flour mix loaded with carefully sprouted Green Gram (Mung bean) and balanced whole millets. Yields delicious, crispy, rich dosas in less than 5 minutes.",
-    image: "/images/pacha_paruppu_packaging_1781422502982.jpg",
+    image: "/images/pacha_paruppu_packaging.jpg",
     colorTheme: "emerald",
     ingredients: ["Sprouted Green Gram flour (பச்சைப்பயறு)", "Sorghum & Pearl Millet flour", "Rice flour for crispness", "Rock salt", "Curry leaves", "Cumin seeds"],
     benefits: [
@@ -343,7 +343,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Instant Mixes & Flour",
     description: "Instant millet batter mix containing iron-dense pearl millets (Kambu/Bajra). Extremely cooling for the digestive system and highly recommended for modern weight-management programs.",
-    image: "/images/kambu_dosai_packaging_1781422485926.jpg",
+    image: "/images/kambu_dosai_packaging.jpg",
     colorTheme: "yellow",
     ingredients: ["Organic Pearl Millet flour (கம்பு)", "Urad Dal flour", "Red Rice powder", "Fenugreek seeds (வெந்தயம்)", "Rock salt"],
     benefits: [
@@ -365,7 +365,7 @@ export const PRODUCTS: Product[] = [
     weight: "250g",
     category: "Instant Mixes & Flour",
     description: "Highly aromatic, premium homemade spice powder (Idly Milagai Podi). Small-batch roasted using dry organic red chillies, white sesame, whole black lentils, and standard compound asafoetida.",
-    image: "/images/idly_podi_packaging_1781422450554.jpg",
+    image: "/images/idly_podi_packaging.jpg",
     colorTheme: "red",
     ingredients: ["Whole Black Lentil (உளுந்து)", "Bengal Gram (கடலைப் பருப்பு)", "Organic Dry Red Chillies (வரமிளகாய்)", "White Sesame Seeds (எள்)", "Rock Salt", "Pure Hing (பெருங்காயம்)", "Fresh Curry leaves"],
     benefits: [
@@ -390,7 +390,7 @@ export const PRODUCTS: Product[] = [
     weight: "1 Combo Box",
     category: "Combo Offers",
     description: "An ultimate family pack curated to bring optimal health into your kitchen at an unbeatable introductory rate. Includes premium instant mixes, flours, and delicious noodles.",
-    image: "/images/millet_combo_packaging_1781422537199.jpg",
+    image: "/images/millet_combo_packaging.jpg",
     colorTheme: "teal",
     ingredients: [
       "1 x Sprouted Pacha Paruppu Dosa Mix (250g)",
@@ -417,7 +417,7 @@ export const RECIPES: Recipe[] = [
     title: "Sprouted Ragi Malt Booster",
     subtitle: "ராகி மால்ட் ஹெல்த் டிரிங்க்",
     description: "A fast, hyper-healthy beverage perfect for growing children and busy professionals. Naturally rich in calcium and highly satisfying.",
-    image: "https://images.unsplash.com/photo-1541658016709-82535e94bc69?auto=format&fit=crop&q=80&w=600",
+    image: "/images/ragi_malt_packaging.jpg",
     prepTime: "5 mins",
     difficulty: "Easy",
     servings: "2 Servings",
@@ -444,7 +444,7 @@ export const RECIPES: Recipe[] = [
     title: "Stir-Fried Beetroot Millet Noodles",
     subtitle: "ருசியான பீட்ரூட் நூடுல்ஸ் பிரட்டல்",
     description: "An elegant, highly nutrient-dense recipe swapping chemical-ridden instant raves with naturally colorful beetroot millet noodles.",
-    image: "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&q=80&w=600",
+    image: "/images/palak_noodles_packaging.jpg",
     prepTime: "15 mins",
     difficulty: "Medium",
     servings: "2-3 Servings",
@@ -464,7 +464,7 @@ export const RECIPES: Recipe[] = [
       "Heat oil in a flat wok. Sauté ginger, garlic, chopped carrots, beans, and bell peppers on high flame for 2 minutes to keep them crunchy.",
       "Add the cooked beetroot noodles along with the spice seasoning tastemaker.",
       "Toss with extreme care for 1-2 minutes using two forks so the stringy noodles do not break.",
-      "Garnish with juicy fresh scallions and serve hot with garlic sauce!"
+      "Garnish with juicy fresh scallions and serve hot with garlic sauce!",
     ],
     tags: ["Healthy Dinner", "Kids Lunchbox", "Antioxidant Rich", "Vegan Friendly"]
   },
@@ -473,7 +473,7 @@ export const RECIPES: Recipe[] = [
     title: "Ghee Podi Idly Skewers",
     subtitle: "நெய் இட்லி பொடி மினி பைட்ஸ்",
     description: "Transform plain left-over idlis into highly addictive, spice-coated golden nuggets utilizing Girija's aromatic homemade Idly Podi.",
-    image: "https://images.unsplash.com/photo-1589301760014-d929f3979dbc?auto=format&fit=crop&q=80&w=600",
+    image: "/images/idly_podi_packaging.jpg",
     prepTime: "10 mins",
     difficulty: "Easy",
     servings: "3 Servings",
@@ -501,7 +501,7 @@ export const RECIPES: Recipe[] = [
     title: "Crispy Pearl Millet Crepes",
     subtitle: "மொறுமொறுப்பான கம்பு தோசை",
     description: "Ditch the tedious grinding cycle and cook ultra-thin, cooling bajra crepes immediately for an energizing diabetic-friendly breakfast.",
-    image: "https://images.unsplash.com/photo-1668236543090-82eba5ee5976?auto=format&fit=crop&q=80&w=600",
+    image: "/images/kambu_dosai_packaging.jpg",
     prepTime: "15 mins",
     difficulty: "Easy",
     servings: "4 Servings",

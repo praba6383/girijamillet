@@ -20,7 +20,8 @@ import {
   X,
   Lock,
   LockOpen,
-  Info
+  Info,
+  Upload
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -34,17 +35,17 @@ interface AdminPanelProps {
 
 // Preset pre-generated premium assets for easy one-click selection
 const PRESET_PACKAGING_IMAGES = [
-  { label: 'Ragi Malt', value: '/images/ragi_malt_packaging_1781422356325.jpg', category: 'Health Malts' },
-  { label: 'ABC Malt', value: '/images/abc_malt_packaging_1781422431988.jpg', category: 'Health Malts' },
-  { label: 'Jowar Noodles', value: '/images/jowar_noodles_packaging_1781422377655.jpg', category: 'Millet Noodles' },
-  { label: 'Hakka Noodles', value: '/images/hakka_noodles_packaging_1781422395705.jpg', category: 'Millet Noodles' },
-  { label: 'Palak Noodles', value: '/images/palak_noodles_packaging_1781422520320.jpg', category: 'Millet Noodles' },
-  { label: 'Little Millet Sevai', value: '/images/sevai_packaging_1781422467266.jpg', category: 'Millet Noodles' },
-  { label: 'Poha (Millet Flakes)', value: '/images/organic_poha_packaging_1781422412522.jpg', category: 'Millet Flakes' },
-  { label: 'Pacha Paruppu Dosa', value: '/images/pacha_paruppu_packaging_1781422502982.jpg', category: 'Instant Mixes & Flour' },
-  { label: 'Kambu Dosa Mix', value: '/images/kambu_dosai_packaging_1781422485926.jpg', category: 'Instant Mixes & Flour' },
-  { label: 'Idly Milagai Podi', value: '/images/idly_podi_packaging_1781422450554.jpg', category: 'Instant Mixes & Flour' },
-  { label: 'Premium Combo Box', value: '/images/millet_combo_packaging_1781422537199.jpg', category: 'Combo Offers' },
+  { label: 'Ragi Malt', value: '/images/ragi_malt_packaging.jpg', category: 'Health Malts' },
+  { label: 'ABC Malt', value: '/images/abc_malt_packaging.jpg', category: 'Health Malts' },
+  { label: 'Jowar Noodles', value: '/images/jowar_noodles_packaging.jpg', category: 'Millet Noodles' },
+  { label: 'Hakka Noodles', value: '/images/hakka_noodles_packaging.jpg', category: 'Millet Noodles' },
+  { label: 'Palak Noodles', value: '/images/palak_noodles_packaging.jpg', category: 'Millet Noodles' },
+  { label: 'Little Millet Sevai', value: '/images/sevai_packaging.jpg', category: 'Millet Noodles' },
+  { label: 'Poha (Millet Flakes)', value: '/images/organic_poha.jpg', category: 'Millet Flakes' },
+  { label: 'Pacha Paruppu Dosa', value: '/images/pacha_paruppu_packaging.jpg', category: 'Instant Mixes & Flour' },
+  { label: 'Kambu Dosa Mix', value: '/images/kambu_dosai_packaging.jpg', category: 'Instant Mixes & Flour' },
+  { label: 'Idly Milagai Podi', value: '/images/idly_podi_packaging.jpg', category: 'Instant Mixes & Flour' },
+  { label: 'Premium Combo Box', value: '/images/millet_combo_packaging.jpg', category: 'Combo Offers' },
 ];
 
 export default function AdminPanel({
@@ -77,7 +78,7 @@ export default function AdminPanel({
   const [weight, setWeight] = useState('250g');
   const [category, setCategory] = useState('Millet Noodles');
   const [description, setDescription] = useState('');
-  const [image, setImage] = useState('/images/ragi_malt_packaging_1781422356325.jpg');
+  const [image, setImage] = useState('/images/ragi_malt_packaging.jpg');
   const [colorTheme, setColorTheme] = useState('amber');
   const [ingredientsText, setIngredientsText] = useState('');
   const [benefitsText, setBenefitsText] = useState('');
@@ -116,7 +117,7 @@ export default function AdminPanel({
     setWeight('250g');
     setCategory(categories[0] || 'Millet Noodles');
     setDescription('');
-    setImage('/images/ragi_malt_packaging_1781422356325.jpg');
+    setImage('/images/ragi_malt_packaging.jpg');
     setColorTheme('amber');
     setIngredientsText('100% Raw Sprouted grain.');
     setBenefitsText('High dietary fiber;Eases gastric load.');
@@ -463,16 +464,74 @@ export default function AdminPanel({
 
               <div>
                 <label className="text-[10px] font-bold text-gray-550 uppercase tracking-widest pl-1 block mb-1">
-                  Product Image URL
+                  Product Image
                 </label>
-                <input
-                  type="text"
-                  placeholder="https://images.unsplash.com/..."
-                  value={image}
-                  onChange={(e) => setImage(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs font-mono"
-                  required
-                />
+                
+                <div className="flex gap-3 mb-2.5 items-stretch">
+                  {/* Current Active Preview */}
+                  <div className="w-16 h-16 rounded-xl border border-gray-200 overflow-hidden shrink-0 bg-gray-50 flex items-center justify-center relative shadow-3xs group">
+                    {image ? (
+                      <img
+                        src={resolveProductImage(image)}
+                        alt="Preview"
+                        className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <span className="text-[9px] text-gray-400 font-medium">No Image</span>
+                    )}
+                  </div>
+                  
+                  {/* Click/Drag File Uploader card */}
+                  <div className="flex-1">
+                    <label className="flex flex-col items-center justify-center w-full h-16 border-2 border-dashed border-gray-150 rounded-xl cursor-pointer hover:bg-brand-green-50/15 hover:border-brand-green-500 hover:text-brand-green-700 transition-all text-gray-500">
+                      <div className="flex flex-col items-center justify-center py-2 px-1 text-center">
+                        <Upload className="w-4 h-4 text-gray-400 mb-0.5" />
+                        <span className="text-[10px] font-semibold">
+                          Click to upload from local machine
+                        </span>
+                        <span className="text-[8px] text-gray-400">PNG, JPG, WEBP, GIF up to 6MB</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              if (event.target?.result) {
+                                setImage(event.target.result as string);
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Or paste direct external image URL..."
+                    value={image}
+                    onChange={(e) => setImage(e.target.value)}
+                    className="w-full pl-3.5 pr-22 py-2.5 rounded-xl border border-gray-200 text-xs font-mono"
+                    required
+                  />
+                  {image && image.startsWith('data:') && (
+                    <button
+                      type="button"
+                      onClick={() => setImage('/images/ragi_malt_packaging.jpg')}
+                      className="absolute right-2 top-2 text-[8px] bg-red-50 hover:bg-red-100 text-red-650 px-2 py-1 rounded-lg font-bold uppercase tracking-wider transition-colors"
+                    >
+                      Remove Local
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Natural organic image selection shortcut box */}
