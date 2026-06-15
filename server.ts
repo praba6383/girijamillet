@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import pg from "pg";
 import dotenv from "dotenv";
 import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
@@ -475,6 +474,7 @@ app.post("/api/products/restore", async (req, res) => {
 async function startServer() {
   // Vite middleware setup with Express
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -493,4 +493,8 @@ async function startServer() {
   });
 }
 
-startServer();
+if (!process.env.NETLIFY) {
+  startServer();
+}
+
+export default app;
