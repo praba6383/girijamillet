@@ -31,8 +31,34 @@ import {
 } from 'lucide-react';
 
 import { resolveProductImage } from './imageResolver';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  writeBatch,
+  getDocs
+} from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from './firebase';
 
-function sanitizeProductImage(p: Product): Product {
+function sanitizeProductImage(p: Product | undefined | null): Product {
+  if (!p) {
+    return {
+      id: 'fallback',
+      name: 'Millet Product',
+      tamilName: '',
+      price: 0,
+      weight: '250g',
+      category: 'Millet Noodles',
+      description: '',
+      image: '',
+      ingredients: [],
+      benefits: [],
+      howToUse: [],
+      colorTheme: 'amber'
+    };
+  }
   let updatedImage = p.image || '';
   
   // Find the fresh definition of this product from data.ts
@@ -52,7 +78,13 @@ function sanitizeProductImage(p: Product): Product {
     }
   }
   
-  return { ...p, image: resolveProductImage(updatedImage) };
+  return { 
+    ...p, 
+    ingredients: Array.isArray(p.ingredients) ? p.ingredients : [],
+    benefits: Array.isArray(p.benefits) ? p.benefits : [],
+    howToUse: Array.isArray(p.howToUse) ? p.howToUse : [],
+    image: resolveProductImage(updatedImage) 
+  };
 }
 
 export default function App() {
@@ -67,18 +99,63 @@ export default function App() {
       const saved = localStorage.getItem('girija_products');
       if (saved) {
         const parsed: Product[] = JSON.parse(saved);
-        return parsed.map(p => sanitizeProductImage(p));
+        return parsed.filter(Boolean).map(p => sanitizeProductImage(p));
       }
-      return PRODUCTS.map(p => sanitizeProductImage(p));
-    } catch (e) {
-      return PRODUCTS.map(p => sanitizeProductImage(p));
-    }
+    } catch (e) {}
+    return PRODUCTS.map(p => sanitizeProductImage(p));
   });
 
-  // Preserve product catalog additions/changes in local storage
+  const [isDbLoading, setIsDbLoading] = useState(true);
+
+  // Synchronize product catalog dynamically with Cloud Firestore
   useEffect(() => {
-    localStorage.setItem('girija_products', JSON.stringify(products));
-  }, [products]);
+    const productsRef = collection(db, 'products');
+    
+    const unsubscribe = onSnapshot(productsRef, async (snapshot) => {
+      if (snapshot.empty) {
+        console.log("Firestore products collection is empty. Seeding default products from catalog...");
+        try {
+          const batch = writeBatch(db);
+          PRODUCTS.forEach((prod) => {
+            const docRef = doc(db, 'products', prod.id);
+            batch.set(docRef, prod);
+          });
+          await batch.commit();
+          console.log("Firestore successfully seeded with default products.");
+        } catch (err) {
+          console.error("Failed to seed products into Firestore:", err);
+        }
+      } else {
+        const fbProducts: Product[] = [];
+        snapshot.forEach((docSnap) => {
+          fbProducts.push(sanitizeProductImage(docSnap.data() as Product));
+        });
+        
+        // Sort to preserve default order from PRODUCTS inside list
+        const defaultOrder = PRODUCTS.map(p => p.id);
+        fbProducts.sort((a, b) => {
+          const idxA = defaultOrder.indexOf(a.id);
+          const idxB = defaultOrder.indexOf(b.id);
+          if (idxA === -1 && idxB === -1) return 0;
+          if (idxA === -1) return -1;
+          if (idxB === -1) return 1;
+          return idxA - idxB;
+        });
+
+        setProducts(fbProducts);
+        try {
+          localStorage.setItem('girija_products', JSON.stringify(fbProducts));
+        } catch (e) {}
+      }
+      setIsDbLoading(false);
+    }, (error) => {
+      console.error("Firestore onSnapshot subscription failed:", error);
+      handleFirestoreError(error, OperationType.LIST, 'products');
+      setIsDbLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // Initialize cart from local storage
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
@@ -86,10 +163,12 @@ export default function App() {
       const saved = localStorage.getItem('girija_cart');
       if (saved) {
         const parsed: CartItem[] = JSON.parse(saved);
-        return parsed.map(item => ({
-          ...item,
-          product: sanitizeProductImage(item.product)
-        }));
+        return parsed
+          .filter(item => item && item.product)
+          .map(item => ({
+            ...item,
+            product: sanitizeProductImage(item.product)
+          }));
       }
       return [];
     } catch (e) {
@@ -99,7 +178,11 @@ export default function App() {
 
   // Preserve cart changes
   useEffect(() => {
-    localStorage.setItem('girija_cart', JSON.stringify(cartItems));
+    try {
+      localStorage.setItem('girija_cart', JSON.stringify(cartItems));
+    } catch (e) {
+      console.warn("Failed to write cart to localStorage (QuotaExceeded or disabled):", e);
+    }
   }, [cartItems]);
 
   // Compute available product categories dynamic checklist
@@ -798,24 +881,62 @@ export default function App() {
         {activeTab === 'admin' && (
           <AdminPanel
             products={products}
-            onAddProduct={(newProd) => {
-              setProducts(prev => [newProd, ...prev]);
+            onAddProduct={async (newProd) => {
+              try {
+                const cleaned: any = {};
+                Object.keys(newProd).forEach(k => {
+                  const val = (newProd as any)[k];
+                  if (val !== undefined && val !== null) {
+                    cleaned[k] = val;
+                  }
+                });
+                await setDoc(doc(db, 'products', newProd.id), cleaned);
+              } catch (error) {
+                console.error("Failed to add product to Firestore:", error);
+                handleFirestoreError(error, OperationType.CREATE, `products/${newProd.id}`);
+              }
             }}
-            onUpdateProduct={(updatedProd) => {
-              setProducts(prev => {
-                return prev.map(p => p.id === updatedProd.id ? updatedProd : p);
-              });
+            onUpdateProduct={async (updatedProd) => {
+              try {
+                const cleaned: any = {};
+                Object.keys(updatedProd).forEach(k => {
+                  const val = (updatedProd as any)[k];
+                  if (val !== undefined && val !== null) {
+                    cleaned[k] = val;
+                  }
+                });
+                await setDoc(doc(db, 'products', updatedProd.id), cleaned);
+              } catch (error) {
+                console.error("Failed to update product in Firestore:", error);
+                handleFirestoreError(error, OperationType.UPDATE, `products/${updatedProd.id}`);
+              }
             }}
-            onDeleteProduct={(productId) => {
-              setProducts(prev => {
-                return prev.filter(p => p.id !== productId);
-              });
-              // Clean up removed products from the shopping cart too
-              setCartItems(prev => prev.filter(item => item.product.id !== productId));
+            onDeleteProduct={async (productId) => {
+              try {
+                await deleteDoc(doc(db, 'products', productId));
+                setCartItems(prev => prev.filter(item => item.product.id !== productId));
+              } catch (error) {
+                console.error("Failed to delete product from Firestore:", error);
+                handleFirestoreError(error, OperationType.DELETE, `products/${productId}`);
+              }
             }}
-            onRestoreDefaults={() => {
-              setProducts(PRODUCTS);
-              localStorage.removeItem('girija_products');
+            onRestoreDefaults={async () => {
+              try {
+                const querySnapshot = await getDocs(collection(db, 'products'));
+                const batch = writeBatch(db);
+                querySnapshot.forEach((docSnap) => {
+                  batch.delete(docSnap.ref);
+                });
+                PRODUCTS.forEach((prod) => {
+                  const docRef = doc(db, 'products', prod.id);
+                  batch.set(docRef, prod);
+                });
+                await batch.commit();
+                localStorage.removeItem('girija_products');
+              } catch (error) {
+                console.error("Failed to restore default products in Firestore:", error);
+                handleFirestoreError(error, OperationType.WRITE, 'products');
+              }
             }}
           />
         )}
@@ -893,7 +1014,7 @@ export default function App() {
                 </li>
                 <li className="flex items-start gap-1.5">
                   <span className="font-bold text-brand-amber-500">Location:</span>
-                  <span>Chennai - Trichy Rural swaths, Tamil Nadu, India</span>
+                  <span>Chennai - urapakkam, Tamil Nadu, India</span>
                 </li>
               </ul>
             </div>

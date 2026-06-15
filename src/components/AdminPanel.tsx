@@ -502,7 +502,45 @@ export default function AdminPanel({
                             const reader = new FileReader();
                             reader.onload = (event) => {
                               if (event.target?.result) {
-                                setImage(event.target.result as string);
+                                const base64Str = event.target.result as string;
+                                // Create an Image object to dynamically resize & compress on canvas
+                                const img = new Image();
+                                img.src = base64Str;
+                                img.onload = () => {
+                                  const canvas = document.createElement('canvas');
+                                  const MAX_WIDTH = 500;
+                                  const MAX_HEIGHT = 500;
+                                  let width = img.width;
+                                  let height = img.height;
+
+                                  if (width > height) {
+                                    if (width > MAX_WIDTH) {
+                                      height = Math.round((height * MAX_WIDTH) / width);
+                                      width = MAX_WIDTH;
+                                    }
+                                  } else {
+                                    if (height > MAX_HEIGHT) {
+                                      width = Math.round((width * MAX_HEIGHT) / height);
+                                      height = MAX_HEIGHT;
+                                    }
+                                  }
+
+                                  canvas.width = width;
+                                  canvas.height = height;
+
+                                  const ctx = canvas.getContext('2d');
+                                  if (ctx) {
+                                    ctx.drawImage(img, 0, 0, width, height);
+                                    // Compress to JPEG with 0.7 quality factor
+                                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                                    setImage(compressedDataUrl);
+                                  } else {
+                                    setImage(base64Str);
+                                  }
+                                };
+                                img.onerror = () => {
+                                  setImage(base64Str);
+                                };
                               }
                             };
                             reader.readAsDataURL(file);

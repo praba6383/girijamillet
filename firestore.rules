@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+
+    function incoming() { 
+      return request.resource.data; 
+    }
+
+    function existing() { 
+      return resource.data; 
+    }
+
+    // Helper to validate product fields
+    function isValidProduct(data) {
+      return data.keys().hasAll(['id', 'name', 'price', 'weight', 'category', 'description', 'image'])
+        && data.id is string && data.id.size() <= 128
+        && data.name is string && data.name.size() <= 200
+        && data.price is number && data.price > 0
+        && data.weight is string && data.weight.size() <= 50
+        && data.category is string && data.category.size() <= 100
+        && data.description is string && data.description.size() <= 5000
+        && data.image is string && data.image.size() <= 2000000
+        && (!data.keys().contains('tamilName') || (data.tamilName is string && data.tamilName.size() <= 200))
+        && (!data.keys().contains('colorTheme') || (data.colorTheme is string && data.colorTheme.size() <= 50))
+        && (!data.keys().contains('ingredients') || (data.ingredients is list && data.ingredients.size() <= 50))
+        && (!data.keys().contains('benefits') || (data.benefits is list && data.benefits.size() <= 50))
+        && (!data.keys().contains('howToUse') || (data.howToUse is list && data.howToUse.size() <= 50))
+        && (!data.keys().contains('isNew') || data.isNew is bool)
+        && (!data.keys().contains('isPopular') || data.isPopular is bool)
+        && (!data.keys().contains('fssai') || (data.fssai is string && data.fssai.size() <= 50));
+    }
+
+    // Products collection
+    match /products/{productId} {
+      allow read: if true;
+      allow create, update: if isValidId(productId) && isValidProduct(incoming());
+      allow delete: if isValidId(productId);
+    }
+  }
+}
