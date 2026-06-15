@@ -31,16 +31,6 @@ import {
 } from 'lucide-react';
 
 import { resolveProductImage } from './imageResolver';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  onSnapshot, 
-  writeBatch,
-  getDocs
-} from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
 
 function sanitizeProductImage(p: Product | undefined | null): Product {
   if (!p) {
@@ -106,55 +96,58 @@ export default function App() {
   });
 
   const [isDbLoading, setIsDbLoading] = useState(true);
+  const [dbStatus, setDbStatus] = useState<{
+    connected: boolean;
+    type: string;
+    error: string | null;
+    databaseUrlSet: boolean;
+  }>({
+    connected: false,
+    type: 'initial',
+    error: null,
+    databaseUrlSet: false
+  });
 
-  // Synchronize product catalog dynamically with Cloud Firestore
-  useEffect(() => {
-    const productsRef = collection(db, 'products');
-    
-    const unsubscribe = onSnapshot(productsRef, async (snapshot) => {
-      if (snapshot.empty) {
-        console.log("Firestore products collection is empty. Seeding default products from catalog...");
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('/api/products');
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(data.map((p: any) => sanitizeProductImage(p)));
         try {
-          const batch = writeBatch(db);
-          PRODUCTS.forEach((prod) => {
-            const docRef = doc(db, 'products', prod.id);
-            batch.set(docRef, prod);
-          });
-          await batch.commit();
-          console.log("Firestore successfully seeded with default products.");
-        } catch (err) {
-          console.error("Failed to seed products into Firestore:", err);
-        }
-      } else {
-        const fbProducts: Product[] = [];
-        snapshot.forEach((docSnap) => {
-          fbProducts.push(sanitizeProductImage(docSnap.data() as Product));
-        });
-        
-        // Sort to preserve default order from PRODUCTS inside list
-        const defaultOrder = PRODUCTS.map(p => p.id);
-        fbProducts.sort((a, b) => {
-          const idxA = defaultOrder.indexOf(a.id);
-          const idxB = defaultOrder.indexOf(b.id);
-          if (idxA === -1 && idxB === -1) return 0;
-          if (idxA === -1) return -1;
-          if (idxB === -1) return 1;
-          return idxA - idxB;
-        });
-
-        setProducts(fbProducts);
-        try {
-          localStorage.setItem('girija_products', JSON.stringify(fbProducts));
+          localStorage.setItem('girija_products', JSON.stringify(data));
         } catch (e) {}
       }
+    } catch (err) {
+      console.error("Failed to fetch products from PostgreSQL backend:", err);
+    } finally {
       setIsDbLoading(false);
-    }, (error) => {
-      console.error("Firestore onSnapshot subscription failed:", error);
-      handleFirestoreError(error, OperationType.LIST, 'products');
-      setIsDbLoading(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
+  const fetchDbStatus = async () => {
+    try {
+      const res = await fetch('/api/db-status');
+      if (res.ok) {
+        const data = await res.json();
+        setDbStatus(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch database status:", err);
+    }
+  };
+
+  // Synchronize product catalog and connection status dynamically with PostgreSQL backend
+  useEffect(() => {
+    fetchProducts();
+    fetchDbStatus();
+
+    // Periodically poll for status updates or external modifications
+    const interval = setInterval(() => {
+      fetchDbStatus();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Initialize cart from local storage
@@ -881,61 +874,59 @@ export default function App() {
         {activeTab === 'admin' && (
           <AdminPanel
             products={products}
+            dbStatus={dbStatus}
             onAddProduct={async (newProd) => {
               try {
-                const cleaned: any = {};
-                Object.keys(newProd).forEach(k => {
-                  const val = (newProd as any)[k];
-                  if (val !== undefined && val !== null) {
-                    cleaned[k] = val;
-                  }
+                const res = await fetch('/api/products', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(newProd)
                 });
-                await setDoc(doc(db, 'products', newProd.id), cleaned);
+                if (!res.ok) throw new Error(await res.text());
+                await fetchProducts();
               } catch (error) {
-                console.error("Failed to add product to Firestore:", error);
-                handleFirestoreError(error, OperationType.CREATE, `products/${newProd.id}`);
+                console.error("Failed to add product to Netlify Database:", error);
+                alert(error instanceof Error ? error.message : "Failed to add product");
               }
             }}
             onUpdateProduct={async (updatedProd) => {
               try {
-                const cleaned: any = {};
-                Object.keys(updatedProd).forEach(k => {
-                  const val = (updatedProd as any)[k];
-                  if (val !== undefined && val !== null) {
-                    cleaned[k] = val;
-                  }
+                const res = await fetch('/api/products', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(updatedProd)
                 });
-                await setDoc(doc(db, 'products', updatedProd.id), cleaned);
+                if (!res.ok) throw new Error(await res.text());
+                await fetchProducts();
               } catch (error) {
-                console.error("Failed to update product in Firestore:", error);
-                handleFirestoreError(error, OperationType.UPDATE, `products/${updatedProd.id}`);
+                console.error("Failed to update product in Netlify Database:", error);
+                alert(error instanceof Error ? error.message : "Failed to update product");
               }
             }}
             onDeleteProduct={async (productId) => {
               try {
-                await deleteDoc(doc(db, 'products', productId));
+                const res = await fetch(`/api/products/${productId}`, {
+                  method: 'DELETE'
+                });
+                if (!res.ok) throw new Error(await res.text());
                 setCartItems(prev => prev.filter(item => item.product.id !== productId));
+                await fetchProducts();
               } catch (error) {
-                console.error("Failed to delete product from Firestore:", error);
-                handleFirestoreError(error, OperationType.DELETE, `products/${productId}`);
+                console.error("Failed to delete product from Netlify Database:", error);
+                alert(error instanceof Error ? error.message : "Failed to delete product");
               }
             }}
             onRestoreDefaults={async () => {
               try {
-                const querySnapshot = await getDocs(collection(db, 'products'));
-                const batch = writeBatch(db);
-                querySnapshot.forEach((docSnap) => {
-                  batch.delete(docSnap.ref);
+                const res = await fetch('/api/products/restore', {
+                  method: 'POST'
                 });
-                PRODUCTS.forEach((prod) => {
-                  const docRef = doc(db, 'products', prod.id);
-                  batch.set(docRef, prod);
-                });
-                await batch.commit();
+                if (!res.ok) throw new Error(await res.text());
                 localStorage.removeItem('girija_products');
+                await fetchProducts();
               } catch (error) {
-                console.error("Failed to restore default products in Firestore:", error);
-                handleFirestoreError(error, OperationType.WRITE, 'products');
+                console.error("Failed to restore default products in Netlify Database:", error);
+                alert(error instanceof Error ? error.message : "Failed to restore defaults");
               }
             }}
           />

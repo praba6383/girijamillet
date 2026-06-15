@@ -31,6 +31,12 @@ interface AdminPanelProps {
   onUpdateProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
   onRestoreDefaults: () => void;
+  dbStatus?: {
+    connected: boolean;
+    type: string;
+    error: string | null;
+    databaseUrlSet: boolean;
+  };
 }
 
 // Preset pre-generated premium assets for easy one-click selection
@@ -53,7 +59,8 @@ export default function AdminPanel({
   onAddProduct,
   onUpdateProduct,
   onDeleteProduct,
-  onRestoreDefaults
+  onRestoreDefaults,
+  dbStatus
 }: AdminPanelProps) {
   // Passcode gate state
   const [passcode, setPasscode] = useState('');
@@ -278,6 +285,37 @@ export default function AdminPanel({
           <p className="text-gray-500 text-sm mt-1 leading-relaxed">
             Create, update catalog parameters, configure custom prices, or revert to organic defaults safely.
           </p>
+
+          {/* Elegant Netlify Database / PostgreSQL Status Badge */}
+          {dbStatus && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              {dbStatus.connected ? (
+                <span className="bg-emerald-50 text-emerald-800 font-medium px-2.5 py-1 rounded-lg border border-emerald-100 flex items-center gap-1.5 shadow-3xs">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                  🟢 Connected to Netlify Database (PostgreSQL)
+                </span>
+              ) : (
+                <span className="bg-amber-50 text-amber-800 font-medium px-2.5 py-1.5 rounded-lg border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center gap-1.5 shadow-3xs text-left max-w-lg">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                    🟡 Connected to In-Memory Fallback
+                  </span>
+                  <span className="text-[10px] text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded">
+                    Reason: {dbStatus.error || "DATABASE_URL environment variable is missing"}
+                  </span>
+                </span>
+              )}
+              {dbStatus.databaseUrlSet ? (
+                <span className="text-gray-400 text-[11px] font-mono">
+                  [DATABASE_URL is configured]
+                </span>
+              ) : (
+                <span className="text-rose-500 text-[11px] font-medium animate-pulse">
+                  (Configure DATABASE_URL credentials to save persistent products in your Netlify Database!)
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
