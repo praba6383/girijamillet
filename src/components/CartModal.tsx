@@ -200,7 +200,7 @@ export default function CartModal({
                   <label className="text-[10px] uppercase tracking-wide text-gray-400 font-bold block mb-1">Your Name</label>
                   <input
                     type="text"
-                    placeholder="E.g., Prabakaran"
+                    placeholder="E.g., your name"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full px-3 py-2 text-xs rounded-lg border border-gray-200 bg-white focus:border-brand-green-600 focus:outline-hidden text-gray-800"
