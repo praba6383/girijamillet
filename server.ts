@@ -27,6 +27,7 @@ let dbError: string | null = null;
 let usePostgres = false;
 let dbInitialized = false;
 let isBootstrapping = false;
+let bootstrapPromise: Promise<void> | null = null;
 
 // Local fallback store if Postgres is not configured or fails to connect
 let inMemoryProducts = [...PRODUCTS];
@@ -114,17 +115,21 @@ async function queryDatabase(text: string, params?: any[]): Promise<any> {
     return null;
   }
 
+  // Await bootstrap if needed, avoiding infinite recursion during CREATE TABLE / INSERT INTO / SELECT COUNT
+  if (!dbInitialized && !text.includes("CREATE TABLE") && !text.includes("INSERT INTO") && !text.includes("SELECT COUNT")) {
+    try {
+      await bootstrapDb();
+    } catch (err: any) {
+      console.warn("Awaiting database bootstrap failed:", err.message);
+    }
+  }
+
   try {
     const res = await pool.query(text, params);
     
     // Recovery successful: we successfully ran a query
     usePostgres = true;
     dbError = null;
-
-    // Trigger asynchronous bootstrap if not already done
-    if (!dbInitialized && !isBootstrapping && !text.includes("CREATE TABLE") && !text.includes("INSERT INTO")) {
-      bootstrapDb();
-    }
 
     return res;
   } catch (err: any) {
@@ -218,22 +223,29 @@ async function initializeDb() {
   }
 }
 
-async function bootstrapDb() {
-  if (dbInitialized || isBootstrapping) return;
-  isBootstrapping = true;
+async function bootstrapDb(): Promise<void> {
+  if (dbInitialized) return;
+  if (bootstrapPromise) return bootstrapPromise;
 
-  try {
-    await initializeDb();
-    dbInitialized = true;
-    usePostgres = true;
-    dbError = null;
-    console.log("Database successfully bootstrapped and verified.");
-  } catch (err: any) {
-    console.error("Failed to bootstrap database layers:", err.message);
-    dbError = `Bootstrap failed: ${err.message}`;
-  } finally {
-    isBootstrapping = false;
-  }
+  bootstrapPromise = (async () => {
+    isBootstrapping = true;
+    try {
+      await initializeDb();
+      dbInitialized = true;
+      usePostgres = true;
+      dbError = null;
+      console.log("Database successfully bootstrapped and verified.");
+    } catch (err: any) {
+      console.error("Failed to bootstrap database layers:", err.message);
+      dbError = `Bootstrap failed: ${err.message}`;
+      // Clear promise on failure to allow subsequent retries
+      bootstrapPromise = null;
+    } finally {
+      isBootstrapping = false;
+    }
+  })();
+
+  return bootstrapPromise;
 }
 
 // Resilient background test and startup connection handshake with smart retries & backoffs
@@ -279,7 +291,9 @@ async function testConnectionOnBoot() {
   console.log("Database handshake unsuccessful on server boot-up. App started successfully; will dynamically reconnect when connection is made available.");
 }
 
-testConnectionOnBoot();
+if (!process.env.NETLIFY) {
+  testConnectionOnBoot();
+}
 
 // --- API Endpoints ---
 
