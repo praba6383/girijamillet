@@ -3,6 +3,11 @@ import path from "path";
 import pg from "pg";
 import dotenv from "dotenv";
 import { PRODUCTS } from "./src/data.js"; // Standard import with extension or relative resolution
+import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
+
+// Set the WebSocket constructor for the Neon serverless driver to work in Node.js environments
+neonConfig.webSocketConstructor = ws;
 
 // Prevent serverless functions from crashing due to unhandled promise rejections from db/sockets
 process.on("unhandledRejection", (reason, promise) => {
@@ -72,21 +77,33 @@ function getDbPool(): any {
     const secureLogUrl = connectionString.replace(/:[^:@]+@/, ":****@");
     console.log(`Initializing database pool for connection: ${secureLogUrl}`);
 
-    console.log("Using standard PostgreSQL database pool with secure SSL fallback.");
-    dbPool = new pg.Pool({
-      connectionString,
-      // For serverless databases like Neon (Netlify Database) or Cloud SQL, SSL is required in production
-      ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
-        ? false
-        : { rejectUnauthorized: false },
-      connectionTimeoutMillis: 8000, // 8 seconds to wait for initial TCP setup (faster fallback)
-      max: 6, // optimal pool size for serverless
-      idleTimeoutMillis: 1000, // immediately clear idle connections so we don't hold onto dead sockets
-      keepAlive: true, // socket-level keep-alive probes
-    });
+    const isNeonOrNetlify = connectionString.includes("neon.tech") || connectionString.includes("db.netlify.com");
+
+    if (isNeonOrNetlify) {
+      console.log("Using Neon/Netlify serverless WebSocket-secured database pool.");
+      dbPool = new NeonPool({
+        connectionString,
+        connectionTimeoutMillis: 8000,
+        max: 8,
+        idleTimeoutMillis: 15000,
+      });
+    } else {
+      console.log("Using standard PostgreSQL database pool with secure SSL fallback.");
+      dbPool = new pg.Pool({
+        connectionString,
+        // For serverless databases like Neon (Netlify Database) or Cloud SQL, SSL is required in production
+        ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
+          ? false
+          : { rejectUnauthorized: false },
+        connectionTimeoutMillis: 8000, // 8 seconds to wait for initial TCP setup (faster fallback)
+        max: 6, // optimal pool size for serverless
+        idleTimeoutMillis: 1000, // immediately clear idle connections so we don't hold onto dead sockets
+        keepAlive: true, // socket-level keep-alive probes
+      });
+    }
 
     dbPool.on("error", (err: any) => {
-      console.warn("PostgreSQL idle client error (recovering on next call):", err.message);
+      console.warn("Database pool idle client error (recovering on next call):", err.message);
       dbError = err.message;
       usePostgres = false;
       
@@ -188,14 +205,16 @@ async function initializeDb() {
       const count = parseInt(checkRes.rows[0].count, 10);
 
       if (count === 0) {
-        console.log("Products table is empty. Seeding default products...");
-        for (const prod of PRODUCTS) {
-          await queryDatabase(`
-            INSERT INTO products (
-              id, name, "tamilName", price, weight, category, description, image, 
-              "colorTheme", ingredients, benefits, "howToUse", "isNew", "isPopular", fssai
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-          `, [
+        console.log("Products table is empty. Seeding default products with a single bulk query...");
+        
+        const values: any[] = [];
+        const valuePlaceholders: string[] = [];
+        
+        PRODUCTS.forEach((prod, idx) => {
+          const offset = idx * 15;
+          valuePlaceholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14}, $${offset + 15})`);
+          
+          values.push(
             prod.id,
             prod.name,
             prod.tamilName || null,
@@ -211,8 +230,17 @@ async function initializeDb() {
             prod.isNew || false,
             prod.isPopular || false,
             prod.fssai || null
-          ]);
-        }
+          );
+        });
+
+        const bulkQuery = `
+          INSERT INTO products (
+            id, name, "tamilName", price, weight, category, description, image, 
+            "colorTheme", ingredients, benefits, "howToUse", "isNew", "isPopular", fssai
+          ) VALUES ${valuePlaceholders.join(", ")}
+        `;
+        
+        await queryDatabase(bulkQuery, values);
         console.log("Seeding complete. Default products loaded into Netlify Database.");
       }
     }
@@ -459,13 +487,15 @@ app.post("/api/products/restore", async (req, res) => {
   if (pool) {
     try {
       await queryDatabase("DELETE FROM products");
-      for (const prod of PRODUCTS) {
-        await queryDatabase(`
-          INSERT INTO products (
-            id, name, "tamilName", price, weight, category, description, image, 
-            "colorTheme", ingredients, benefits, "howToUse", "isNew", "isPopular", fssai
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-        `, [
+      
+      const values: any[] = [];
+      const valuePlaceholders: string[] = [];
+      
+      PRODUCTS.forEach((prod, idx) => {
+        const offset = idx * 15;
+        valuePlaceholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9}, $${offset + 10}, $${offset + 11}, $${offset + 12}, $${offset + 13}, $${offset + 14}, $${offset + 15})`);
+        
+        values.push(
           prod.id,
           prod.name,
           prod.tamilName || null,
@@ -481,8 +511,17 @@ app.post("/api/products/restore", async (req, res) => {
           prod.isNew || false,
           prod.isPopular || false,
           prod.fssai || null
-        ]);
-      }
+        );
+      });
+
+      const bulkQuery = `
+        INSERT INTO products (
+          id, name, "tamilName", price, weight, category, description, image, 
+          "colorTheme", ingredients, benefits, "howToUse", "isNew", "isPopular", fssai
+        ) VALUES ${valuePlaceholders.join(", ")}
+      `;
+
+      await queryDatabase(bulkQuery, values);
       return res.json({ success: true });
     } catch (err: any) {
       console.error("Failed to restore default products in PostgreSQL:", err.message);
