@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import pg from "pg";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 import { PRODUCTS } from "./src/data.js"; // Standard import with extension or relative resolution
 
 // Prevent serverless functions from crashing due to unhandled promise rejections from db/sockets
@@ -31,6 +32,31 @@ let bootstrapPromise: Promise<void> | null = null;
 
 // Local fallback store if Postgres is not configured or fails to connect
 let inMemoryProducts = [...PRODUCTS];
+
+// Supabase Connection Configuration
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || "";
+let isSupabaseConfigured = false;
+let supabase: any = null;
+
+if (supabaseUrl && supabaseServiceKey) {
+  let cleanUrl = supabaseUrl.trim();
+  if (cleanUrl.endsWith("/rest/v1/")) {
+    cleanUrl = cleanUrl.replace(/\/rest\/v1\/$/, "");
+  } else if (cleanUrl.endsWith("/rest/v1")) {
+    cleanUrl = cleanUrl.replace(/\/rest\/v1$/, "");
+  }
+  if (cleanUrl.endsWith("/")) {
+    cleanUrl = cleanUrl.slice(0, -1);
+  }
+  try {
+    supabase = createClient(cleanUrl, supabaseServiceKey.trim());
+    isSupabaseConfigured = true;
+    console.log(`Supabase client successfully configured for project URL: ${cleanUrl}`);
+  } catch (err: any) {
+    console.error("Failed to initialize Supabase client:", err.message);
+  }
+}
 
 function getDbPool(): any {
   let connectionString = process.env.DATABASE_URL;
@@ -72,17 +98,19 @@ function getDbPool(): any {
     const secureLogUrl = connectionString.replace(/:[^:@]+@/, ":****@");
     console.log(`Initializing database pool for connection: ${secureLogUrl}`);
 
-    console.log("Using standard PostgreSQL database pool with secure SSL fallback.");
+    const isNetlify = !!process.env.NETLIFY;
+    console.log(`Setting up database pool. Environment: ${isNetlify ? "Netlify Serverless" : "Standard Server"}`);
+
     dbPool = new pg.Pool({
       connectionString,
       // For serverless databases like Neon (Netlify Database) or Cloud SQL, SSL is required in production
       ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
         ? false
         : { rejectUnauthorized: false },
-      connectionTimeoutMillis: 10000, // 10 seconds to wait for initial TCP setup
-      max: 10, // optimal pool size for serverless functions
-      idleTimeoutMillis: 30000, // standard idle timeout to keep connection alive
-      keepAlive: true, // socket-level keep-alive probes
+      connectionTimeoutMillis: 6000, // fast connection timeout for serverless handshake
+      max: isNetlify ? 3 : 10, // low max pool size for serverless functions to avoid connection exhaustion
+      idleTimeoutMillis: isNetlify ? 250 : 30000, // CRITICAL: close idle connections immediately on Netlify so the serverless function can terminate cleanly
+      keepAlive: !isNetlify, // CRITICAL: disable socket-level keep-alive on Netlify so the event loop empties instantly
     });
 
     dbPool.on("error", (err: any) => {
@@ -310,6 +338,36 @@ if (!process.env.NETLIFY) {
 
 // Get database status
 app.get("/api/db-status", async (req, res) => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase.from("products").select("id").limit(1);
+      if (error) {
+        return res.json({
+          connected: false,
+          type: "supabase",
+          error: `Supabase integration issue: ${error.message}. Please verify table named 'products' exists in Supabase.`,
+          databaseUrlSet: true,
+          initialized: false,
+        });
+      }
+      return res.json({
+        connected: true,
+        type: "supabase",
+        error: null,
+        databaseUrlSet: true,
+        initialized: true,
+      });
+    } catch (err: any) {
+      return res.json({
+        connected: false,
+        type: "supabase",
+        error: `Supabase network/connection issue: ${err.message}`,
+        databaseUrlSet: true,
+        initialized: false,
+      });
+    }
+  }
+
   const pool = getDbPool();
   if (pool && !usePostgres) {
     // Attempt dynamic connection recovery via resilient helper
@@ -334,6 +392,80 @@ app.get("/api/db-status", async (req, res) => {
 
 // Fetch all products
 app.get("/api/products", async (req, res) => {
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase.from("products").select("*");
+      if (error) {
+        throw new Error(error.message);
+      }
+      if (data) {
+        const formatted = data.map((row: any) => {
+          const tamilName = row.tamilName !== undefined ? row.tamilName : row.tamilname;
+          const colorTheme = row.colorTheme !== undefined ? row.colorTheme : row.colortheme;
+          const isNewVal = row.isNew !== undefined ? row.isNew : row.isnew;
+          const isPopularVal = row.isPopular !== undefined ? row.isPopular : row.ispopular;
+
+          let ingredients = [];
+          const rawIngredients = row.ingredients;
+          if (Array.isArray(rawIngredients)) {
+            ingredients = rawIngredients;
+          } else if (typeof rawIngredients === "string") {
+            try { ingredients = JSON.parse(rawIngredients); } catch (e) { ingredients = []; }
+          }
+
+          let benefits = [];
+          const rawBenefits = row.benefits;
+          if (Array.isArray(rawBenefits)) {
+            benefits = rawBenefits;
+          } else if (typeof rawBenefits === "string") {
+            try { benefits = JSON.parse(rawBenefits); } catch (e) { benefits = []; }
+          }
+
+          let howToUse = [];
+          const rawHowToUse = row.howToUse !== undefined ? row.howToUse : row.howtouse;
+          if (Array.isArray(rawHowToUse)) {
+            howToUse = rawHowToUse;
+          } else if (typeof rawHowToUse === "string") {
+            try { howToUse = JSON.parse(rawHowToUse); } catch (e) { howToUse = []; }
+          }
+
+          return {
+            id: row.id,
+            name: row.name,
+            tamilName: tamilName || null,
+            price: parseFloat(row.price),
+            weight: row.weight,
+            category: row.category,
+            description: row.description,
+            image: row.image,
+            colorTheme: colorTheme || "amber",
+            ingredients,
+            benefits,
+            howToUse,
+            isNew: !!isNewVal,
+            isPopular: !!isPopularVal,
+            fssai: row.fssai
+          };
+        });
+
+        // Keep order consistent with default catalog
+        const defaultOrder = PRODUCTS.map(p => p.id);
+        formatted.sort((a, b) => {
+          const idxA = defaultOrder.indexOf(a.id);
+          const idxB = defaultOrder.indexOf(b.id);
+          if (idxA === -1 && idxB === -1) return 0;
+          if (idxA === -1) return -1;
+          if (idxB === -1) return 1;
+          return idxA - idxB;
+        });
+
+        return res.json(formatted);
+      }
+    } catch (err: any) {
+      console.warn("Retrying products fetch with memory-store due to Supabase error:", err.message);
+    }
+  }
+
   const pool = getDbPool();
   if (pool) {
     try {
@@ -385,6 +517,35 @@ app.post("/api/products", async (req, res) => {
   const prod = req.body;
   if (!prod.id || !prod.name || !prod.price) {
     return res.status(400).json({ error: "Missing required product fields (id, name, price)" });
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase.from("products").upsert({
+        id: prod.id,
+        name: prod.name,
+        tamilName: prod.tamilName || null,
+        price: prod.price,
+        weight: prod.weight || "250g",
+        category: prod.category || "General",
+        description: prod.description || "",
+        image: prod.image || "",
+        colorTheme: prod.colorTheme || "amber",
+        ingredients: prod.ingredients || [],
+        benefits: prod.benefits || [],
+        howToUse: prod.howToUse || [],
+        isNew: !!prod.isNew,
+        isPopular: !!prod.isPopular,
+        fssai: prod.fssai || null
+      });
+      if (error) {
+        throw new Error(error.message);
+      }
+      return res.json({ success: true, product: prod });
+    } catch (err: any) {
+      console.error("Failed to insert product into Supabase:", err.message);
+      return res.status(500).json({ error: `Supabase error: ${err.message}` });
+    }
   }
 
   const pool = getDbPool();
@@ -448,6 +609,19 @@ app.post("/api/products", async (req, res) => {
 app.delete("/api/products/:id", async (req, res) => {
   const { id } = req.params;
 
+  if (isSupabaseConfigured) {
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) {
+        throw new Error(error.message);
+      }
+      return res.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to delete product from Supabase:", err.message);
+      return res.status(500).json({ error: `Supabase error: ${err.message}` });
+    }
+  }
+
   const pool = getDbPool();
   if (pool) {
     try {
@@ -466,6 +640,44 @@ app.delete("/api/products/:id", async (req, res) => {
 
 // Restore default products
 app.post("/api/products/restore", async (req, res) => {
+  if (isSupabaseConfigured) {
+    try {
+      // Delete all products using a filter that matches all (neq id to some dummy)
+      const { error: deleteErr } = await supabase.from("products").delete().neq("id", "does_not_exist_dummy_value");
+      if (deleteErr) {
+        throw new Error(deleteErr.message);
+      }
+      
+      const payload = PRODUCTS.map(prod => ({
+        id: prod.id,
+        name: prod.name,
+        tamilName: prod.tamilName || null,
+        price: prod.price,
+        weight: prod.weight,
+        category: prod.category,
+        description: prod.description,
+        image: prod.image,
+        colorTheme: prod.colorTheme,
+        ingredients: prod.ingredients || [],
+        benefits: prod.benefits || [],
+        howToUse: prod.howToUse || [],
+        isNew: !!prod.isNew,
+        isPopular: !!prod.isPopular,
+        fssai: prod.fssai || null
+      }));
+
+      const { error: insertErr } = await supabase.from("products").insert(payload);
+      if (insertErr) {
+        throw new Error(insertErr.message);
+      }
+      
+      return res.json({ success: true });
+    } catch (err: any) {
+      console.error("Failed to restore default products in Supabase:", err.message);
+      return res.status(500).json({ error: `Supabase error: ${err.message}` });
+    }
+  }
+
   const pool = getDbPool();
   if (pool) {
     try {

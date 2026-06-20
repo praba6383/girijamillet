@@ -292,7 +292,11 @@ export default function AdminPanel({
               {dbStatus.connected ? (
                 <span className="bg-emerald-50 text-emerald-800 font-medium px-2.5 py-1 rounded-lg border border-emerald-100 flex items-center gap-1.5 shadow-3xs">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                  🟢 Connected to Netlify Database (PostgreSQL)
+                  {dbStatus.type === "supabase" ? (
+                    <span>🟢 Connected to Supabase Cloud Database (Highly Reliable Serverless)</span>
+                  ) : (
+                    <span>🟢 Connected to Netlify Database (PostgreSQL)</span>
+                  )}
                 </span>
               ) : (
                 <div className="bg-amber-50 text-amber-800 rounded-xl border border-amber-200 p-3.5 shadow-3xs text-left max-w-xl w-full flex flex-col gap-2">
@@ -307,22 +311,108 @@ export default function AdminPanel({
                   </div>
                   <div className="text-xs">
                     <p className="text-amber-900/85 mb-2 leading-relaxed font-serif text-[11px] sm:text-xs">
-                      Products are active locally. To hook this app up with your persistent PostgreSQL database, make sure to verify your DATABASE_URL structure under settings.
+                      Products are active locally. To hook this app up with your persistent PostgreSQL database or Supabase serverless, make sure to configure your environment credentials under Netlify or settings.
                     </p>
                     <div className="bg-white/80 border border-amber-200/60 rounded-lg p-2.5 font-mono text-[11px] text-amber-950 select-text overflow-x-auto max-h-36 scrollbar-thin">
                       <span className="font-semibold text-amber-900 block mb-1 font-sans text-[11px]">Diagnostic Error Output:</span>
-                      <div className="whitespace-pre-wrap break-words">{dbStatus.error || "DATABASE_URL environment variable is missing."}</div>
+                      <div className="whitespace-pre-wrap break-words">{dbStatus.error || "DATABASE_URL or Supabase environment variables are missing."}</div>
                     </div>
+
+                    {dbStatus.type === "supabase" && (dbStatus.error || "").includes("public.products") && (
+                      <div className="mt-4 bg-emerald-50/75 border border-emerald-200 rounded-xl p-4 text-emerald-950 space-y-3 shadow-3xs">
+                        <div className="flex items-center gap-2 font-sans text-xs font-bold text-emerald-900">
+                          <span className="flex items-center justify-center w-5 h-5 bg-emerald-500 text-white rounded-full text-[10px] font-mono">1</span>
+                          🛠️ Quick Fix: Initialize your Supabase database table
+                        </div>
+                        <p className="text-emerald-900/85 text-[11px] leading-relaxed">
+                          Your Supabase credentials are connected! Just run this SQL query in your <strong>Supabase Dashboard</strong> under the <strong>SQL Editor</strong> tab to create the required <code>products</code> table. Once created, click <strong>Reset Defaults</strong> to populate all 17 default products.
+                        </p>
+                        
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center bg-gray-900 text-gray-300 font-mono text-[10px] px-3 py-1.5 rounded-t-lg border-b border-gray-800">
+                            <span>schema.sql</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`-- 1. Create the 'products' table
+CREATE TABLE IF NOT EXISTS public.products (
+  id VARCHAR(128) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  "tamilName" VARCHAR(255),
+  price NUMERIC NOT NULL,
+  weight VARCHAR(50) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  description TEXT NOT NULL,
+  image TEXT NOT NULL,
+  "colorTheme" VARCHAR(50) NOT NULL,
+  ingredients JSONB DEFAULT '[]'::jsonb,
+  benefits JSONB DEFAULT '[]'::jsonb,
+  "howToUse" JSONB DEFAULT '[]'::jsonb,
+  "isNew" BOOLEAN DEFAULT FALSE,
+  "isPopular" BOOLEAN DEFAULT FALSE,
+  fssai VARCHAR(50),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Disable RLS for rapid setup sandbox
+ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;`);
+                                alert("SQL Schema copied to clipboard!");
+                              }}
+                              className="text-[10px] text-emerald-400 font-semibold hover:text-emerald-300 transition-colors uppercase tracking-wider cursor-pointer"
+                            >
+                              Copy Code
+                            </button>
+                          </div>
+                          <pre className="bg-gray-900 text-emerald-400 font-mono text-[10px] p-3 rounded-b-lg overflow-x-auto max-h-48 scrollbar-thin select-all">
+{`CREATE TABLE IF NOT EXISTS public.products (
+  id VARCHAR(128) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  "tamilName" VARCHAR(255),
+  price NUMERIC NOT NULL,
+  weight VARCHAR(50) NOT NULL,
+  category VARCHAR(100) NOT NULL,
+  description TEXT NOT NULL,
+  image TEXT NOT NULL,
+  "colorTheme" VARCHAR(50) NOT NULL,
+  ingredients JSONB DEFAULT '[]'::jsonb,
+  benefits JSONB DEFAULT '[]'::jsonb,
+  "howToUse" JSONB DEFAULT '[]'::jsonb,
+  "isNew" BOOLEAN DEFAULT FALSE,
+  "isPopular" BOOLEAN DEFAULT FALSE,
+  fssai VARCHAR(50),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.products DISABLE ROW LEVEL SECURITY;`}
+                          </pre>
+                        </div>
+
+                        <div className="pt-1">
+                          <a
+                            href="https://supabase.com/dashboard/project/_/editor"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer text-[11px]"
+                          >
+                            Go to Supabase SQL Editor ➔
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
-              {dbStatus.databaseUrlSet ? (
+              {dbStatus.type === "supabase" ? (
+                <span className="text-emerald-700 text-[11px] font-mono font-semibold">
+                  [Supabase Integration Active]
+                </span>
+              ) : dbStatus.databaseUrlSet ? (
                 <span className="text-gray-400 text-[11px] font-mono">
                   [DATABASE_URL is configured]
                 </span>
               ) : (
                 <span className="text-rose-500 text-[11px] font-medium animate-pulse">
-                  (Configure DATABASE_URL credentials to save persistent products in your Netlify Database!)
+                  (Configure DATABASE_URL or Supabase credentials to save persistent products in your Cloud Database!)
                 </span>
               )}
             </div>
