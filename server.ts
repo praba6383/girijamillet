@@ -3,11 +3,6 @@ import path from "path";
 import pg from "pg";
 import dotenv from "dotenv";
 import { PRODUCTS } from "./src/data.js"; // Standard import with extension or relative resolution
-import { Pool as NeonPool, neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
-
-// Set the WebSocket constructor for the Neon serverless driver to work in Node.js environments
-neonConfig.webSocketConstructor = ws;
 
 // Prevent serverless functions from crashing due to unhandled promise rejections from db/sockets
 process.on("unhandledRejection", (reason, promise) => {
@@ -77,30 +72,18 @@ function getDbPool(): any {
     const secureLogUrl = connectionString.replace(/:[^:@]+@/, ":****@");
     console.log(`Initializing database pool for connection: ${secureLogUrl}`);
 
-    const isNeonOrNetlify = connectionString.includes("neon.tech") || connectionString.includes("db.netlify.com");
-
-    if (isNeonOrNetlify) {
-      console.log("Using Neon/Netlify serverless WebSocket-secured database pool.");
-      dbPool = new NeonPool({
-        connectionString,
-        connectionTimeoutMillis: 8000,
-        max: 8,
-        idleTimeoutMillis: 15000,
-      });
-    } else {
-      console.log("Using standard PostgreSQL database pool with secure SSL fallback.");
-      dbPool = new pg.Pool({
-        connectionString,
-        // For serverless databases like Neon (Netlify Database) or Cloud SQL, SSL is required in production
-        ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
-          ? false
-          : { rejectUnauthorized: false },
-        connectionTimeoutMillis: 8000, // 8 seconds to wait for initial TCP setup (faster fallback)
-        max: 6, // optimal pool size for serverless
-        idleTimeoutMillis: 1000, // immediately clear idle connections so we don't hold onto dead sockets
-        keepAlive: true, // socket-level keep-alive probes
-      });
-    }
+    console.log("Using standard PostgreSQL database pool with secure SSL fallback.");
+    dbPool = new pg.Pool({
+      connectionString,
+      // For serverless databases like Neon (Netlify Database) or Cloud SQL, SSL is required in production
+      ssl: connectionString.includes("localhost") || connectionString.includes("127.0.0.1")
+        ? false
+        : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10000, // 10 seconds to wait for initial TCP setup
+      max: 10, // optimal pool size for serverless functions
+      idleTimeoutMillis: 30000, // standard idle timeout to keep connection alive
+      keepAlive: true, // socket-level keep-alive probes
+    });
 
     dbPool.on("error", (err: any) => {
       console.warn("Database pool idle client error (recovering on next call):", err.message);
